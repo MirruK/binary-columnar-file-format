@@ -1,10 +1,11 @@
-# Binary columnar file-format
-
-TODO: Come up with a name for the project
+# Binary columnar file-format "bincoff"
 
 ## How to build
 
-Use: `gcc main.c` and run with for example `./a.out test/test-short.csv ";"`
+- Tests: `make test` and `./test-bincoff`
+
+- CLI: `make cli`
+  - see CLI-section for how to use the CLI binary
 
 ## Rationale and idea
 
@@ -29,10 +30,10 @@ The CLI of this tool supports the following actions:
 
 Placeholder name `bincoff` ( \[Bin\]ary \[Co\]lumnar \[F\]ile \[F\]rmat ) is used here just for examples sake
 
-1. Serialize with `bincoff-cli --serialize --schema SCHEMA_FILE.bincoff INPUT_FILE.csv --output-dir OUT_DIR`
-2. Deserialize using `bincoff-cli --deserialize INPUT_DIR --output-file OUTPUT_FILE.csv`
+1. Serialize with `bincoff-cli serialize INPUT_FILE.csv OUT_DIR`
+2. Deserialize using `bincoff-cli deserialize INPUT_DIR`
 
-## Schemas
+## Schemas (WIP)
 
 A primitive schema format is defined in order to aid the serialization/deserialization process.
 
@@ -41,7 +42,7 @@ As the user of the utility you must define:
 1. The type of the values of each column
 2. (OPTIONAL) The delimiter of the input document (Can also be passed by CLI-argument when serializing)
 
-### An example schema
+### An example schema (WIP)
 ```
 // myschema.bincoff
 ;
