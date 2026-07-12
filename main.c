@@ -32,20 +32,39 @@
 enum DataType { INTEGER, STRING };
 
 typedef struct {
-  // Max size of a multi-char delimiter is 8 characters
-  char delimiter[8];
-  size_t data_size;
-  enum DataType data_type;
-}BincoffColumnFileHeaders;
-
-typedef struct {
   char* table_name;
   uint32_t col_count;
   char** col_names;
   enum DataType* col_types;
 }BincoffTableMetadata;
 
-// Schema* init_schema()
+enum DataType datatype_str_to_enumval(const char* str) {
+  if(strcmp(str, "INTEGER") == 0){
+    return INTEGER;
+  }
+  if(strcmp(str, "STRING") == 0){
+    return STRING;
+  }
+    return STRING;
+}
+
+enum DataType* parse_schema(char* filename){
+  FILE* fp = fopen(filename, "r");
+  fseek(fp, 0L, SEEK_END);
+  size_t size = ftell(fp);
+  rewind(fp);
+  char* buf = malloc(size);
+  getline(&buf, &size, fp);
+  char* curr;
+  int i = 0;
+  enum DataType* schema = malloc(sizeof(enum DataType) * 128);
+  curr = strtok(buf,";");
+  while((curr = strtok(NULL, ";")) != NULL){
+    schema[i] = datatype_str_to_enumval(curr);
+    i++;
+  }
+  return schema;
+}
 
 /* Caller is responsible for ensuring validity and lifetime
  of memory behind any of the addresses passed into this function **/
