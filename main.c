@@ -1,4 +1,6 @@
+#include <asm-generic/errno-base.h>
 #include <assert.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,13 +21,13 @@
 // TODO: Examples of analytical queries and file sizes
 // TODO: Parallelized serializiation, deserialization and analytical queries
 // TODO: Conversion back to csv?
-// TODO: Split code into multiple files with better organization
+// [x] TODO: Split code into multiple files with better organization
 
 // Smaller TODOs
 
-// TODO: Serialize fails with segfault if output table directory doesn't exist
+// [x] TODO: Serialize fails with segfault if output table directory doesn't exist
 // TODO: document choice of uint32_t as length specifier for strings (long is overkill)
-// TODO: change int type on the INTEGER column type to a standardized (4 byte)
+// [x] TODO: change int type on the INTEGER column type to a standardized (4 byte)
 // type so it is the same on 32-bit and 64-bit systems (int32_t for instance)
 
 int main(int argc, char **argv) {
@@ -60,6 +62,10 @@ int main(int argc, char **argv) {
     stat(table_path, &st);
     size_t file_size = st.st_size;
     FILE* fp = fopen(table_path, "rb");
+    if (fp == NULL) {
+      perror("fopen: Failed to open file");
+      exit(1);
+    }
     // printf("file size in bytes: %ld of file at: %s\n", file_size, table_path);
     void* data = malloc(file_size*2);
     fread(data, 1, file_size, fp);
@@ -97,22 +103,47 @@ int main(int argc, char **argv) {
     char** headers = malloc(sizeof(char*)*col_count);
     char* data_path = malloc(strlen(given_tablename) + 32);
     char* metadata_path = malloc(strlen(given_tablename) + 32);
-    sprintf(data_path, "test/%s/col_0.bin", given_tablename);
-    sprintf(metadata_path, "test/%s/metadata", given_tablename);
+    sprintf(data_path, "%s/col_0.bin", given_tablename);
+    sprintf(metadata_path, "%s/metadata", given_tablename);
     printf("data path: %s\tmetadata path: %s\n", data_path, metadata_path);
+    // Check existence of output path, otherwise fail with error msg
+    if (stat(given_tablename, &st) == 0){
+      if (!S_ISDIR(st.st_mode)) {
+        printf("Output path exists, but is not a directory, exiting...\n");
+        exit(1);
+      }
+    } else {
+      if (errno == ENOENT) {
+        printf("Desired output directory wasn't found, please create it and rerun bincoff\n");
+        exit(1);
+      }
+      else {
+        perror("stat failed when checking existence of output table directory");
+        exit(1);
+      }
+    }
+    
     // prealloc buffer
     int filesize = size*2;
     void *data = malloc(filesize);
     size_t bytes_serialized = parse_csv(filename, headers, data, delimiter, schema);
     FILE* outfile = fopen(data_path, "wb");
+    if (outfile == NULL) {
+      perror("fopen: Failed to open file");
+      exit(1);
+    }
     FILE* metadata_outfile = fopen(metadata_path, "wb");
+    if (metadata_outfile == NULL) {
+      perror("fopen: Failed to open file");
+      exit(1);
+    }
     assert(bytes_serialized < filesize);
     BincoffTableMetadata* metadata = init_table_metadata(given_tablename, col_count, headers, schema);
     write_metadata(metadata, metadata_outfile);
     fwrite(data, 1, bytes_serialized, outfile);
     fclose(outfile);
     fclose(metadata_outfile);
-    printf("Output file bytes written: %ld", bytes_serialized);
+    printf("Output file bytes written: %ld\n", bytes_serialized);
     
   }
 }
