@@ -12,7 +12,7 @@
 // Higher-level TODOs
 
 // [x] TODO: Metadata for binary file (total bytes, column_number, datatype);
-// TODO: Schema from specification file
+// [x] TODO: Schema from specification file
 // [x] TODO: Reading data from file and deserialization
 // [x] TODO: Dynamically sized input data buffer for handling large files
 // TODO: Columns as separate files
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   // get filename & delimiter from argv
   char *filename = "test.csv";
   char *given_tablename = "test_table";
-  char* schema_name;
+  char *schema_name;
   char *delimiter = ";";
   char *action;
   if (argc >= 2) {
@@ -109,12 +109,12 @@ int main(int argc, char **argv) {
     // enum DataType schema[4] = {STRING, STRING, INTEGER, STRING};
     // enum DataType schema[6] = {INTEGER, INTEGER, INTEGER,
     //                            INTEGER, INTEGER, INTEGER};
-    FILE* schema_fp = fopen(schema_name, "r");
+    FILE *schema_fp = fopen(schema_name, "r");
     if (schema_fp == NULL) {
       perror("fopen: failed to open schema file");
       exit(1);
     }
-    enum DataType* schema = parse_schema(schema_fp);
+    enum DataType *schema = parse_schema(schema_fp);
     fclose(schema_fp);
 
     int col_count = sizeof(schema) / sizeof(int);

@@ -33,7 +33,7 @@ for example with analytical processing of the CSV data.
 
 The CLI of this tool supports the following actions:
 
-1. Serialize with `bincoff-cli serialize INPUT_FILE.csv OUT_DIR`
+1. Serialize with `bincoff-cli serialize INPUT_FILE DELIMITER SCHEMA_FILE OUT_DIR`
 2. Deserialize using `bincoff-cli deserialize INPUT_DIR`
 
 ## Schemas (WIP)
