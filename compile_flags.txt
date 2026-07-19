@@ -1,2 +1,0 @@
--Ivendor/criterion-2.4.3/include
--Lvendor/criterion-2.4.3/lib

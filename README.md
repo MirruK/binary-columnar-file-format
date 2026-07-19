@@ -1,11 +1,16 @@
 # Binary columnar file-format "bincoff"
 
+The name `bincoff` ( \[Bin\]ary \[Co\]lumnar \[F\]ile \[F\]rmat ), is just a codename at this point but maybe it sticks.
+
 ## How to build
 
 - Tests: `make test` and `./test-bincoff`
 
 - CLI: `make cli`
   - see CLI-section for how to use the CLI binary
+
+- debugging: `make debug` and `./debug-bincoff`
+  - Add your desired code to debug.c, the compiled binary will have address sanitizer and debug options enabled
 
 ## Rationale and idea
 
@@ -28,8 +33,6 @@ for example with analytical processing of the CSV data.
 
 The CLI of this tool supports the following actions:
 
-Placeholder name `bincoff` ( \[Bin\]ary \[Co\]lumnar \[F\]ile \[F\]rmat ) is used here just for examples sake
-
 1. Serialize with `bincoff-cli serialize INPUT_FILE.csv OUT_DIR`
 2. Deserialize using `bincoff-cli deserialize INPUT_DIR`
 
@@ -37,34 +40,53 @@ Placeholder name `bincoff` ( \[Bin\]ary \[Co\]lumnar \[F\]ile \[F\]rmat ) is use
 
 A primitive schema format is defined in order to aid the serialization/deserialization process.
 
-As the user of the utility you must define:
+As the user of the utility you must define the type of the values of each column
 
-1. The type of the values of each column
-2. (OPTIONAL) The delimiter of the input document (Can also be passed by CLI-argument when serializing)
-
-### An example schema (WIP)
+### An example schema
 ```
 // myschema.bincoff
-;
-foo:string
-bar:i32
-baz:f64
+STRING;INTEGER;INTEGER
 ```
+
+The schema file doesn't have to have any specific file extension, but .bincoff can be used for clarity.
 
 This schema file could then be used to serialize a CSV file like this:
 
 ```csv
 foo;bar;baz
-hello;1337;4.6
+hello;1337;46
 world;9001;16
 ```
 
-## The file format
+### Supported types (WIP)
 
-Given the previous example input file and schema, the columns would then be split up into individual files, and the values would be encoded and repeated in a long sequence.
-Strings lengths have to be noted at the time of serialization in order to write it before the value so that the deserializer can correctly read the binary file.
+Currently variable length strings, and 4-byte signed integers are supported.
+
+TODO: Floats and other basic datatypes
+
+## The file format (WIP)
+
+Currently the format for one table of data is a directory that has a file called "metadata", this
+file includes information like table name, column count, column names as well as their corresponding datatype.
+
+The actual data is stored in a file cal col_0.bin which includes the serialized table data, the idea is to split this up
+so that each column of data is stored in its own file, instead of the current layout of having data of each column sequentially,
+for each row.
 
 ## Parallelization
 
 Each column can be serialized and written on separate threads and the document can be scanned in chunks, utilizing SIMD to read eg. 8 values at a time.
 Writes to the resulting files should be done in a chunked fashion to limit the syscall / IO overhead.
+
+## Testing
+
+Currently only a few unit tests exist, and they are implemented using [criterion](https://github.com/Snaipe/Criterion).
+
+The plan is to implement correctness tests for the parsing logic, tests of the CLI functionality, and maybe most importantly, performance
+tests for some common usage flows. These tests will be further expanded once parallelization has been added.
+
+## Development environment and clangd
+
+For formatting and lsp features, use clangd-format and clangd, respectively.
+
+In order to get clangd to understand how the program should be built, it needs a compile_commands.json-file, this can be created by using [bear](https://github.com/rizsotto/Bear) which can intercept the compilation commands ran by make to automate the process.

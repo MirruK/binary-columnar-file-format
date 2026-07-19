@@ -1,4 +1,5 @@
 #include "bincoff.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,8 +13,7 @@ enum DataType datatype_str_to_enumval(const char* str) {
     return STRING;
 }
 
-enum DataType* parse_schema(char* filename){
-  FILE* fp = fopen(filename, "r");
+enum DataType* parse_schema(FILE* fp){
   fseek(fp, 0L, SEEK_END);
   size_t size = ftell(fp);
   rewind(fp);
@@ -22,11 +22,14 @@ enum DataType* parse_schema(char* filename){
   STRIP_NEWLINE(buf);
   char* curr;
   int i = 0;
+  enum DataType dt;
   enum DataType* schema = malloc(sizeof(enum DataType) * 128);
   curr = strtok(buf,";");
   schema[i++] = datatype_str_to_enumval(curr);
   while((curr = strtok(NULL, ";")) != NULL){
-    schema[i++] = datatype_str_to_enumval(curr);
+    dt = datatype_str_to_enumval(curr);
+    printf("parsed datatype: %d\n", dt);
+    schema[i++] = dt;
   }
   return schema;
 }
@@ -170,24 +173,17 @@ void write_metadata(BincoffTableMetadata* metadata, FILE* outfile) {
   }
 }
 
-BincoffTableMetadata* parse_metadata(char* dir){
-  int dirname_size = strlen(dir);
-  char m[] = "/metadata";
-  char* metadata_path = malloc(dirname_size + sizeof(m));
-  strcpy(metadata_path, dir);
-  char* filename = strcat(metadata_path, m);
-  FILE* fp = fopen(metadata_path, "rb");
-  if (fp == NULL){
-    perror("dunno what happened but metadata file could not be loaded");
-    exit(1);
-  }
-  size_t curr_line_size = 32;
+BincoffTableMetadata* _parse_metadata_internal(FILE* fp) {  
+  size_t curr_line_size = 0;
   int line_len;
+  char* table_name;
   // get line containing table name
-  char* table_name = malloc(curr_line_size);
   line_len = getline(&table_name, &curr_line_size, fp);
+  // replaces newline with null byte
   STRIP_NEWLINE(table_name);
-  char* col_count_str = malloc(curr_line_size);
+  char* col_count_str;
+  curr_line_size = 0;
+  // same procedure but for the number of columns of the stored data
   line_len = getline(&col_count_str, &curr_line_size, fp);
   STRIP_NEWLINE(col_count_str);
   int col_count = atoi(col_count_str);
@@ -199,15 +195,29 @@ BincoffTableMetadata* parse_metadata(char* dir){
   enum DataType* schema = malloc(sizeof(enum DataType)*col_count);
   for(i = 0; i < col_count && (line_len = getline(&curr_line, &curr_line_size, fp) != -1); i++){
     curr_column = strtok(curr_line, ";");
-    column_names[i] = malloc(strlen(curr_column));
+    column_names[i] = (char*)malloc(strlen(curr_column)+1);
     strcpy(column_names[i], curr_column);
     curr_column = strtok(NULL, ";");
     STRIP_NEWLINE(curr_column);
     schema[i] = atoi(curr_column);
   }
-  if (i != col_count - 1) {
-    printf("Found mismatch between col_count field and actual number of columns listed in metadata\n");
+  if (i != col_count) {
+    printf("Found mismatch between col_count field and actual number of columns listed in metadata\n, col_count = %d, actual count = %d\n", col_count, i);
   }
   BincoffTableMetadata* metadata = init_table_metadata(table_name, col_count, column_names, schema);
   return metadata;
+}
+
+BincoffTableMetadata* parse_metadata(char* dir){
+  int dirname_size = strlen(dir);
+  char m[] = "/metadata";
+  char* metadata_path = malloc(dirname_size + sizeof(m));
+  strcpy(metadata_path, dir);
+  char* filename = strcat(metadata_path, m);
+  FILE* fp = fopen(metadata_path, "rb");
+  if (fp == NULL){
+    perror("dunno what happened but metadata file could not be loaded");
+    exit(1);
+  }
+  return _parse_metadata_internal(fp);
 }

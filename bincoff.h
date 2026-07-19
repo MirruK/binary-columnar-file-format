@@ -18,7 +18,7 @@ typedef struct {
 enum DataType datatype_str_to_enumval(const char* str);
 
 
-enum DataType* parse_schema(char* filename);
+enum DataType* parse_schema(FILE* fp);
 
 /* Caller is responsible for ensuring validity and lifetime
  of memory behind any of the addresses passed into this function **/
