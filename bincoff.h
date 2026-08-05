@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "sized_bincoff_buffer.h"
 
 #define STRIP_NEWLINE(string) string[strcspn(string, "\n")] = '\0'
 
@@ -17,7 +18,7 @@ typedef struct {
 
 enum DataType datatype_str_to_enumval(const char *str);
 
-enum DataType *parse_schema(FILE *fp);
+size_t parse_schema(FILE *fp, enum DataType** schema_ptr);
 
 /* Caller is responsible for ensuring validity and lifetime
  of memory behind any of the addresses passed into this function **/
@@ -35,6 +36,10 @@ void deserialize_and_print(void *data, BincoffTableMetadata *metadata,
                            size_t data_len);
 
 size_t parse_csv(char *filename, char **headers_buffer, void *buffer,
+                 char *delimiter, enum DataType *schema);
+
+/* Parse csv file into N column data buffers, laid out in order and pointed to by "buffer" **/
+size_t parse_csv_columnar(char* filename, char **headers_buffer, SizedBincoffBuffer*** column_buffers_ptr,
                  char *delimiter, enum DataType *schema);
 
 void write_metadata(BincoffTableMetadata *metadata, FILE *outfile);

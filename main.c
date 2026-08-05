@@ -59,23 +59,31 @@ int main(int argc, char **argv) {
     }
     BincoffTableMetadata *metadata = parse_metadata(table_dir_name);
     write_metadata(metadata, stdout);
+    int col_count = metadata->col_count;
     // dirname/col_N.bin -- /col_N.bin is 9 chars + max 7 chars for N
     // 9999999 <- max number of columns
     char *table_path = malloc(strlen(table_dir_name) + 16);
-    sprintf(table_path, "%s/col_0.bin", table_dir_name);
-    struct stat st;
-    stat(table_path, &st);
-    size_t file_size = st.st_size;
-    FILE *fp = fopen(table_path, "rb");
-    if (fp == NULL) {
-      perror("fopen: Failed to open file");
-      exit(1);
+    for (int col_num = 0; col_num < col_count; col_num++){
+      // TODO: factor out this logic of constructing the column file name to help
+      // keep it consistent with other places in the code that do the same thing
+      sprintf(table_path, "%s/col_%d.bin", table_dir_name, col_num);
+      struct stat st;
+      stat(table_path, &st);
+      size_t file_size = st.st_size;
+      FILE *fp = fopen(table_path, "rb");
+      if (fp == NULL) {
+	perror("fopen: Failed to open file");
+	exit(1);
+      }
+      // printf("file size in bytes: %ld of file at: %s\n", file_size, table_path);
+      void *data = malloc(file_size * 4);
+      void *init_ptr = data;
+      fread(data, 1, file_size, fp);
+      while (data - init_ptr < file_size){
+	data += deserialize_value(data, metadata->col_types[col_num]);
+      }
+      fclose(fp);
     }
-    // printf("file size in bytes: %ld of file at: %s\n", file_size,
-    // table_path);
-    void *data = malloc(file_size * 2);
-    fread(data, 1, file_size, fp);
-    deserialize_and_print(data, metadata, file_size);
   }
   // Handle SERIALIZE command
   else {
@@ -114,16 +122,16 @@ int main(int argc, char **argv) {
       perror("fopen: failed to open schema file");
       exit(1);
     }
-    enum DataType *schema = parse_schema(schema_fp);
+    
+    enum DataType *schema = NULL;
+    int col_count = parse_schema(schema_fp, &schema);
     fclose(schema_fp);
 
-    int col_count = sizeof(schema) / sizeof(int);
-    char **headers = malloc(sizeof(char *) * col_count);
     char *data_path = malloc(strlen(given_tablename) + 32);
     char *metadata_path = malloc(strlen(given_tablename) + 32);
-    sprintf(data_path, "%s/col_0.bin", given_tablename);
+
     sprintf(metadata_path, "%s/metadata", given_tablename);
-    printf("data path: %s\tmetadata path: %s\n", data_path, metadata_path);
+    // printf("data path: %s\tmetadata path: %s\n", data_path, metadata_path);
     // Check existence of output path, otherwise fail with error msg
     if (stat(given_tablename, &st) == 0) {
       if (!S_ISDIR(st.st_mode)) {
@@ -141,27 +149,34 @@ int main(int argc, char **argv) {
       }
     }
 
+    char **headers = malloc(sizeof(char *) * col_count);
+
     // prealloc buffer
     int filesize = size * 2;
-    void *data = malloc(filesize);
+    SizedBincoffBuffer **column_buffers;
     size_t bytes_serialized =
-        parse_csv(filename, headers, data, delimiter, schema);
-    FILE *outfile = fopen(data_path, "wb");
-    if (outfile == NULL) {
-      perror("fopen: Failed to open file");
-      exit(1);
+        parse_csv_columnar(filename, headers, &column_buffers, delimiter, schema);
+    for (int col_num = 0; col_num < col_count; col_num++){
+      printf("col_num: %zu, col_count %zu\n", col_num, col_count);
+      sprintf(data_path, "%s/col_%d.bin", given_tablename, col_num);
+      FILE *outfile = fopen(data_path, "wb");
+      if (outfile == NULL) {
+	perror("fopen: Failed to open file");
+	exit(1);
+      }
+      fwrite(column_buffers[col_num]->start_ptr, 1, column_buffers[col_num]->size, outfile);
+      fclose(outfile);
     }
+
     FILE *metadata_outfile = fopen(metadata_path, "wb");
     if (metadata_outfile == NULL) {
       perror("fopen: Failed to open file");
       exit(1);
     }
-    assert(bytes_serialized < filesize);
     BincoffTableMetadata *metadata =
         init_table_metadata(given_tablename, col_count, headers, schema);
     write_metadata(metadata, metadata_outfile);
-    fwrite(data, 1, bytes_serialized, outfile);
-    fclose(outfile);
+    
     fclose(metadata_outfile);
     printf("Output file bytes written: %ld\n", bytes_serialized);
   }

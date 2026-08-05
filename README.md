@@ -64,14 +64,12 @@ Currently variable length strings, and 4-byte signed integers are supported.
 
 TODO: Floats and other basic datatypes
 
-## The file format (WIP)
+## The file format
 
 Currently the format for one table of data is a directory that has a file called "metadata", this
 file includes information like table name, column count, column names as well as their corresponding datatype.
 
-The actual data is stored in a file cal col_0.bin which includes the serialized table data, the idea is to split this up
-so that each column of data is stored in its own file, instead of the current layout of having data of each column sequentially,
-for each row.
+The actual column data is stored in files denoted by "col_N.bin" where N is the column number indexed from 0 up to the total number of columns - 1.
 
 ## Parallelization
 

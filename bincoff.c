@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 enum DataType datatype_str_to_enumval(const char *str) {
   if (strcmp(str, "INTEGER") == 0) {
@@ -13,7 +14,7 @@ enum DataType datatype_str_to_enumval(const char *str) {
   return STRING;
 }
 
-enum DataType *parse_schema(FILE *fp) {
+size_t parse_schema(FILE *fp, enum DataType** schema_ptr) {
   fseek(fp, 0L, SEEK_END);
   size_t size = ftell(fp);
   rewind(fp);
@@ -31,7 +32,8 @@ enum DataType *parse_schema(FILE *fp) {
     printf("parsed datatype: %d\n", dt);
     schema[i++] = dt;
   }
-  return schema;
+  *schema_ptr = schema;
+  return i;
 }
 
 /* Caller is responsible for ensuring validity and lifetime
@@ -67,6 +69,29 @@ size_t serialize_and_insert(void **dst, char *src, enum DataType data_type) {
     *dst += sizeof(uint32_t);
     memcpy(*dst, src, length);
     *dst += length;
+    total_bytes = sizeof(uint32_t) + length;
+    break;
+  }
+  }
+  return total_bytes;
+}
+
+size_t serialize_and_append(SizedBincoffBuffer *buf, char *src,
+                            enum DataType data_type) {
+  size_t total_bytes = 0;
+  switch (data_type) {
+  case INTEGER: {
+    int val = atoi(src);
+    // printf("int val: %d\n", val);
+    append(buf, &val, sizeof(int));
+    total_bytes = sizeof(int);
+    break;
+  }
+  case STRING: {
+    size_t length = strlen(src);
+    // printf("str len: %ld, str val: %s\n", length, src);
+    append(buf, &length, sizeof(uint32_t));
+    append(buf, src, length);
     total_bytes = sizeof(uint32_t) + length;
     break;
   }
@@ -168,6 +193,84 @@ size_t parse_csv(char *filename, char **headers_buffer, void *buffer,
   }
   fclose(fp);
   return bytes_serialized;
+}
+
+size_t _parse_csv_columnar_internal(FILE *fp, char **headers_buffer,
+                                    SizedBincoffBuffer ***column_buffers_ptr,
+                                    char *delimiter, enum DataType *schema,
+                                    size_t fsize) {
+  // 1. Lookahead to see how many headers there are (the rest of the function
+  // will assume that number of columns per row)
+  size_t headers_string_size = 32;
+  char *headers_string = malloc(headers_string_size);
+  getline(&headers_string, &headers_string_size, fp);
+  char *curr_header;
+  size_t column_count = 0;
+  curr_header = strtok(headers_string, delimiter);
+  STRIP_NEWLINE(curr_header);
+  headers_buffer[column_count] = malloc(strlen(curr_header) + 1);
+  strcpy(headers_buffer[column_count++], curr_header);
+  while ((curr_header = strtok(NULL, delimiter)) != NULL) {
+    STRIP_NEWLINE(curr_header);
+    headers_buffer[column_count] = malloc(strlen(curr_header) + 1);
+    strcpy(headers_buffer[column_count++], curr_header);
+  }
+  printf("column count: %d\n", column_count);
+
+  // 2. Pre-allocate buffers for all N columns (using file size / N heuristic)
+  size_t column_size_estimate = fsize / column_count;
+  *column_buffers_ptr = malloc(sizeof(SizedBincoffBuffer *) * column_count);
+  SizedBincoffBuffer** column_buffers = *column_buffers_ptr;
+
+  int i = 0;
+  char *curr_column;
+  char *curr_line;
+  size_t curr_line_size = 0;
+  size_t line_bytes_count = 0;
+  size_t line_len = 0;
+  size_t row_num = 0;
+  size_t col_num = 0;
+
+  for (i = 0; i < column_count; i++){
+    column_buffers[i] = init_sized_bincoff_buffer(column_size_estimate);
+  }
+  // 4. For each row
+  while ((line_len = getline(&curr_line, &line_bytes_count, fp) != -1)) {
+    if (strcmp(curr_line, "") == 0) {break;}
+    // 5. For column in row:
+    curr_column = strtok(curr_line, delimiter);
+    column_buffers[col_num]->size += serialize_and_append(
+        column_buffers[col_num], curr_column, schema[col_num]);
+    col_num++;
+    while ((curr_column = strtok(NULL, delimiter)) != NULL) {
+      column_buffers[col_num]->size += serialize_and_append(
+          column_buffers[col_num], curr_column, schema[col_num]);
+      col_num++;
+    }
+    printf("got to %d col_num\n", col_num);
+    col_num = 0;
+    row_num++;
+  }
+  // 8. Return number of columns, sized column data is available in
+  // "column_buffers"
+  return column_count;
+}
+
+size_t parse_csv_columnar(char *filename, char **headers_buffer,
+                          SizedBincoffBuffer ***column_buffers_ptr, char *delimiter,
+                          enum DataType *schema) {
+  FILE *fp = fopen(filename, "r");
+  if (fp == NULL) {
+    perror("Failed to open file");
+    return 0;
+  }
+
+  struct stat st;
+  stat(filename, &st);
+  size_t filesize_total = st.st_size;
+
+  return _parse_csv_columnar_internal(fp, headers_buffer, column_buffers_ptr,
+                                      delimiter, schema, filesize_total);
 }
 
 void write_metadata(BincoffTableMetadata *metadata, FILE *outfile) {
