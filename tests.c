@@ -11,6 +11,14 @@
   [ ] unit tests for all major functions listed in bincoff.h
   [ ] CLI interface tests
   [ ] Data de-/serialization correctness tests
+  -   [ ] parse_csv_columnar()
+  -   [ ] integers (negative, zero, positive, underflow, overflow)
+      [ ] strings (len matches string, preservation/stripping of newlines, handling of escapes)
+      [ ] floats (use double-precision?) (NaN, Inf, bit-level correctness)
+      [ ] enums (valid enum option, invalid enum option handling, dynamic enum member count (uint8/16/32 etc...?)
+      [ ] delimiter handling (empty column data i.e. repeated delimiters)
+  [ ] Convert SizedBincoffBuffer to dynamic arrays with actual datapoints
+  
   [ ] Performance testing
       [ ] parse csv -> serialized data buffer
       [ ] bincoff binary file -> in-mem data buffer

@@ -15,7 +15,7 @@
 // [x] TODO: Schema from specification file
 // [x] TODO: Reading data from file and deserialization
 // [x] TODO: Dynamically sized input data buffer for handling large files
-// TODO: Columns as separate files
+// [x] TODO: Columns as separate files
 // TODO: Bitmap encoding?
 // TODO: Correctness test suite
 // TODO: Examples of analytical queries and file sizes
