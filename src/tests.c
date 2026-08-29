@@ -13,12 +13,15 @@
   [ ] Data de-/serialization correctness tests
   -   [ ] parse_csv_columnar()
   -   [ ] integers (negative, zero, positive, underflow, overflow)
-      [ ] strings (len matches string, preservation/stripping of newlines, handling of escapes)
-      [ ] floats (use double-precision?) (NaN, Inf, bit-level correctness)
-      [ ] enums (valid enum option, invalid enum option handling, dynamic enum member count (uint8/16/32 etc...?)
+      [ ] strings (len matches string, preservation/stripping of newlines,
+      handling of escapes)
+      [ ] floats (use double-precision?) (NaN, Inf, bit-level
+      correctness)
+      [ ] enums (valid enum option, invalid enum option handling,
+      dynamic enum member count (uint8/16/32 etc...?)
       [ ] delimiter handling (empty column data i.e. repeated delimiters)
-  [ ] Convert SizedBincoffBuffer to dynamic arrays with actual datapoints
-  
+      [ ] Convert SizedBincoffBuffer to dynamic arrays with actual datapoints
+
   [ ] Performance testing
       [ ] parse csv -> serialized data buffer
       [ ] bincoff binary file -> in-mem data buffer
@@ -54,41 +57,44 @@ Test(test_parse_metadata, test_parse_metadata_valid_input) {
 
   cr_assert(
       strcmp(expected_metadata.table_name, returned_metadata->table_name) == 0);
-  for (int i = 0; i < expected_metadata.col_count; i++) {
+  for (size_t i = 0; i < expected_metadata.col_count; i++) {
     cr_assert(strcmp(expected_metadata.col_names[i],
                      returned_metadata->col_names[i]) == 0);
   }
   cr_assert(expected_metadata.col_count == returned_metadata->col_count);
-  for (int i = 0; i < expected_metadata.col_count; i++) {
+  for (size_t i = 0; i < expected_metadata.col_count; i++) {
     cr_assert(expected_metadata.col_types[i] ==
               returned_metadata->col_types[i]);
   }
 }
 
-Test(test_parse_csv, parse_valid_csv_into_columns_valid_schema){
+Test(test_parse_csv, parse_valid_csv_into_columns_valid_schema) {
   enum DataType MOCK_SCHEMA[3] = {INTEGER, STRING, STRING};
   // set up test file
-  char* MOCK_FILE_HEADERS = "foo;bar;baz\n";
-  char* MOCK_FILE_ROW1 = "-1;a string with varying c1234 1_!! contents;another strr\n";
-  char* MOCK_FILE_ROW2 = "1401298;I am on column \"bar\"!;    \n";
-  char* MOCK_FILE_ROW3 = "789172389;suspicious but valid contents\f \t ;\t\t\t";
+  char *MOCK_FILE_HEADERS = "foo;bar;baz\n";
+  char *MOCK_FILE_ROW1 =
+      "-1;a string with varying c1234 1_!! contents;another strr\n";
+  char *MOCK_FILE_ROW2 = "1401298;I am on column \"bar\"!;    \n";
+  char *MOCK_FILE_ROW3 = "789172389;suspicious but valid contents\f \t ;\t\t\t";
 
   char mock_file[256];
-  sprintf(mock_file, "%s%s%s%s%c", MOCK_FILE_HEADERS, MOCK_FILE_ROW1, MOCK_FILE_ROW2, MOCK_FILE_ROW3, EOF);
+  sprintf(mock_file, "%s%s%s%s%c", MOCK_FILE_HEADERS, MOCK_FILE_ROW1,
+          MOCK_FILE_ROW2, MOCK_FILE_ROW3, EOF);
   FILE *fp = fmemopen(mock_file, sizeof(mock_file), "r");
   size_t fsize = strlen(mock_file);
-  char **headers_buffer = malloc(3*sizeof(char*));
+  char **headers_buffer = malloc(3 * sizeof(char *));
   SizedBincoffBuffer **column_buffers = NULL;
-  char* delimiter = ";";
-  size_t ret = _parse_csv_columnar_internal(fp, headers_buffer, &column_buffers, delimiter, MOCK_SCHEMA, fsize);
+  char *delimiter = ";";
+  size_t ret = _parse_csv_columnar_internal(fp, headers_buffer, &column_buffers,
+                                            delimiter, MOCK_SCHEMA, fsize);
 
   cr_assert(3 == ret);
-  // The reason we have 5 elements is because each string occupies 2 elements due to the
-  // string length and string itself being distinct elements in the buffer
+  // The reason we have 5 elements is because each string occupies 2 elements
+  // due to the string length and string itself being distinct elements in the
+  // buffer
   cr_assert(column_buffers[0]->element_count == 5);
   cr_assert(column_buffers[1]->element_count == 5);
   cr_assert(column_buffers[2]->element_count == 5);
-
 }
 
 // TODO: test_parse_csv, test_parse_csv_invalid_input_malformed_csv
