@@ -1,4 +1,5 @@
 #include "bincoff.h"
+#include "debug_macro.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +30,7 @@ size_t parse_schema(FILE *fp, enum DataType **schema_ptr) {
   schema[i++] = datatype_str_to_enumval(curr);
   while ((curr = strtok(NULL, ";")) != NULL) {
     dt = datatype_str_to_enumval(curr);
-    printf("parsed datatype: %d\n", dt);
+    debug_log("parsed datatype: %d\n", dt);
     schema[i++] = dt;
   }
   *schema_ptr = schema;
@@ -82,16 +83,16 @@ size_t serialize_and_append(SizedBincoffBuffer *buf, char *src,
   switch (data_type) {
   case INTEGER: {
     int val = atoi(src);
-    // printf("int val: %d\n", val);
-    append(buf, &val, sizeof(int));
+    debug_log("int val: %d\n", val);
+    append(buf, &val, sizeof(int), 1);
     total_bytes = sizeof(int);
     break;
   }
   case STRING: {
     size_t length = strlen(src);
-    // printf("str len: %ld, str val: %s\n", length, src);
-    append(buf, &length, sizeof(uint32_t));
-    append(buf, src, length);
+    debug_log("str len: %ld, str val: %s\n", length, src);
+    append(buf, &length, sizeof(uint32_t), 0);
+    append(buf, src, length, 1);
     total_bytes = sizeof(uint32_t) + length;
     break;
   }

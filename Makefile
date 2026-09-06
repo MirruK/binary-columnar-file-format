@@ -42,14 +42,20 @@ LD.clang := /bin/clang
 CC := ${CC.${COMPILER}}
 LD := ${LD.${COMPILER}}
 
+# Sets the value of the preprocessor variable DEBUG for
+# the two different build-modes. In debug we want features enabled by
+# preprocessor #define DEBUG 1, in release we don't.
+# These will be passed to the compiler as a -DDEBUG=... flag
+DEBUG.debug := 1
+DEBUG.release := 0
 
 CFLAGS.gcc.debug := -Og -fstack-protector-all
 CFLAGS.gcc.release := -O3 -march=native -Ivendor/criterion-2.4.3/include -DNDEBUG
-CFLAGS.gcc := -Wall -Wextra -Werror -g -fmessage-length=0 ${CFLAGS.gcc.${BUILD}}
+CFLAGS.gcc := -Wall -Wextra -Werror -g -fmessage-length=0 ${CFLAGS.gcc.${BUILD}} -DDEBUG=${DEBUG.${BUILD}}
 
 CFLAGS.clang.debug := -O0 -fstack-protector-all -Ivendor/criterion-2.4.3/include
 CFLAGS.clang.release := -O3 -Ivendor/criterion-2.4.3/include -DNDEBUG
-CFLAGS.clang := -Wall -Wextra -Werror -g -fmessage-length=0 ${CFLAGS.clang.${BUILD}}
+CFLAGS.clang := -Wall -Wextra -Werror -g -fmessage-length=0 ${CFLAGS.clang.${BUILD}} -DDEBUG=${DEBUG.${BUILD}}
 
 CFLAGS := ${CFLAGS.${COMPILER}}
 

@@ -21,4 +21,6 @@ size_t get_remaining_capacity(SizedBincoffBuffer* buf);
 
 void _resize_to_fit(SizedBincoffBuffer* buf, size_t item_size);
 
-void append(SizedBincoffBuffer* buf, void* item, size_t item_size);
+void append(SizedBincoffBuffer* buf, void* item, size_t item_size, int is_concrete);
+
+void apply(SizedBincoffBuffer* buf, void* data_schema, size_t (*value_handler)(void* item_ptr, void* schema, size_t idx));

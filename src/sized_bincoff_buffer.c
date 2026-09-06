@@ -28,8 +28,20 @@ void _resize_to_fit(SizedBincoffBuffer *buf, size_t item_size) {
   }
 }
 
-void append(SizedBincoffBuffer *buf, void *item, size_t item_size) {
+void append(SizedBincoffBuffer *buf, void *item, size_t item_size, int is_concrete) {
   _resize_to_fit(buf, item_size);
   buf->head_ptr = mempcpy(buf->head_ptr, item, item_size);
-  buf->element_count += 1;
+  // Only increment element_count if the said element is not metadata like string length
+  // specifier. This places the burden on the caller to know what they are appending
+  if (is_concrete){
+    buf->element_count += 1;
+  }
+}
+
+/** Applies function value_handler to each element in buf */
+void apply(SizedBincoffBuffer* buf, void* schema, size_t (*value_handler)(void* item_ptr, void* schema, size_t idx)) {
+  char* ptr = (char*)(buf->start_ptr);
+  for (size_t i = 0; i < buf->element_count; i++){
+    ptr += value_handler(ptr, schema, i);
+  }
 }

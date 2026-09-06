@@ -1,5 +1,6 @@
 #include "bincoff.h"
 #include "bincoff_internal.h"
+#include "debug_macro.h"
 #include <criterion/criterion.h>
 #include <stdio.h>
 #include <string.h>
@@ -68,6 +69,12 @@ Test(test_parse_metadata, test_parse_metadata_valid_input) {
   }
 }
 
+size_t handler_fn(void* item_ptr, void* schema, size_t idx) {
+  (void)idx;
+  enum DataType schema_casted = *(enum DataType*)schema;
+  return deserialize_value(item_ptr, schema_casted);
+}
+
 Test(test_parse_csv, parse_valid_csv_into_columns_valid_schema) {
   enum DataType MOCK_SCHEMA[3] = {INTEGER, STRING, STRING};
   // set up test file
@@ -88,13 +95,17 @@ Test(test_parse_csv, parse_valid_csv_into_columns_valid_schema) {
   size_t ret = _parse_csv_columnar_internal(fp, headers_buffer, &column_buffers,
                                             delimiter, MOCK_SCHEMA, fsize);
 
+
+  
+  for(size_t i = 0; i < 3; i++) {
+    debug_log("element count of column_buffers[%zu] is %zu\n", i, column_buffers[i]->element_count);
+    apply(column_buffers[i], &MOCK_SCHEMA[i], handler_fn);
+  }
+
   cr_assert(3 == ret);
-  // The reason we have 5 elements is because each string occupies 2 elements
-  // due to the string length and string itself being distinct elements in the
-  // buffer
-  cr_assert(column_buffers[0]->element_count == 5);
-  cr_assert(column_buffers[1]->element_count == 5);
-  cr_assert(column_buffers[2]->element_count == 5);
+  cr_assert(column_buffers[0]->element_count == 3);
+  cr_assert(column_buffers[1]->element_count == 3);
+  cr_assert(column_buffers[2]->element_count == 3);
 }
 
 // TODO: test_parse_csv, test_parse_csv_invalid_input_malformed_csv
