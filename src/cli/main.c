@@ -116,17 +116,13 @@ int main(int argc, char **argv) {
     size_t size = st.st_size;
     printf("Input CSV file size in bytes: %ld\n", size);
 
-    // column 1 => string, column 2 => string, col 3 => integer, col 4 => string
-    // enum DataType schema[4] = {STRING, STRING, INTEGER, STRING};
-    // enum DataType schema[6] = {INTEGER, INTEGER, INTEGER,
-    //                            INTEGER, INTEGER, INTEGER};
     FILE *schema_fp = fopen(schema_name, "r");
     if (schema_fp == NULL) {
       perror("fopen: failed to open schema file");
       exit(1);
     }
 
-    enum DataType *schema = NULL;
+    DataType *schema = NULL;
     size_t col_count = parse_schema(schema_fp, &schema);
     fclose(schema_fp);
 
@@ -134,7 +130,6 @@ int main(int argc, char **argv) {
     char *metadata_path = malloc(strlen(given_tablename) + 32);
 
     sprintf(metadata_path, "%s/metadata", given_tablename);
-    // printf("data path: %s\tmetadata path: %s\n", data_path, metadata_path);
     // Check existence of output path, otherwise fail with error msg
     if (stat(given_tablename, &st) == 0) {
       if (!S_ISDIR(st.st_mode)) {
