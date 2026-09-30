@@ -2,15 +2,17 @@
 
 The name `bincoff` ( \[Bin\]ary \[Co\]lumnar \[F\]ile \[F\]rmat ), is just a codename at this point but maybe it sticks.
 
-## How to build
+## Compiling from source
 
-- Tests: `make test` and `./test-bincoff`
+- `make [BUILD=debug]` :: Defaults to the `all`-target, build all binaries with the `debug`-profile (the `BUILD=debug` part is optional)
+- `make BUILD=release` :: Compile with optimization turned on and debugging flags turned off
+- `make clean` :: Delete the whole `build/` directory containing the build artifacts
+- `make run_{ARTIFACT_NAME}` runs the binary called `ARTIFACT_NAME`
+  - For example: `make BUILD=debug run_bincoff-cli [...args]` is the same as running `./build/debug/bincoff-cli [...args]`
 
-- CLI: `make cli`
-  - see CLI-section for how to use the CLI binary
-
-- debugging: `make debug` and `./debug-bincoff`
-  - Add your desired code to debug.c, the compiled binary will have address sanitizer and debug options enabled
+The artifacts are all placed in the `build/`-directory at the root of the project.
+The binaries and object files are placed in a directory named after the build profile.
+So a release build has its artifacts placed into `build/release/...`
 
 ## Rationale and idea
 
@@ -36,7 +38,7 @@ The CLI of this tool supports the following actions:
 1. Serialize with `bincoff-cli serialize INPUT_FILE DELIMITER SCHEMA_FILE OUT_DIR`
 2. Deserialize using `bincoff-cli deserialize INPUT_DIR`
 
-## Schemas (WIP)
+## Schema
 
 A primitive schema format is defined in order to aid the serialization/deserialization process.
 
@@ -44,7 +46,6 @@ As the user of the utility you must define the type of the values of each column
 
 ### An example schema
 ```
-// myschema.bincoff
 STRING;INTEGER;INTEGER
 ```
 

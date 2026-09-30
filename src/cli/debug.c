@@ -1,5 +1,4 @@
 #include "bincoff.h"
-#include "bincoff_internal.h"
 #include "debug_macro.h"
 #include <assert.h>
 #include <stdio.h>

@@ -31,19 +31,19 @@
 */
 
 Test(test_parse_schema, test_parse_schema_valid_input) {
-  enum DataType expected_schema[4] = {INTEGER, INTEGER, STRING, INTEGER};
+  DataType expected_schema[4] = {INTEGER, INTEGER, STRING, INTEGER};
   char mock_file[] = "INTEGER;INTEGER;STRING;INTEGER";
   FILE *schema_fp = fmemopen(mock_file, sizeof(mock_file), "r");
-  enum DataType *returned_schema = NULL;
+  DataType *returned_schema = NULL;
   parse_schema(schema_fp, &returned_schema);
 
-  cr_expect_arr_eq(expected_schema, returned_schema, sizeof(enum DataType) * 4);
+  cr_expect_arr_eq(expected_schema, returned_schema, sizeof(DataType) * 4);
 }
 
 // TODO: test_parse_schema, test_parse_schema_invalid_input
 
 Test(test_parse_metadata, test_parse_metadata_valid_input) {
-  enum DataType schema[3] = {INTEGER, INTEGER, STRING};
+  DataType schema[3] = {INTEGER, INTEGER, STRING};
   char *col_names[3] = {"foo", "bar", "baz"};
   BincoffTableMetadata expected_metadata = {.table_name = "test_table_1",
                                             .col_names = (char **)col_names,
@@ -71,12 +71,12 @@ Test(test_parse_metadata, test_parse_metadata_valid_input) {
 
 size_t handler_fn(void* item_ptr, void* schema, size_t idx) {
   (void)idx;
-  enum DataType schema_casted = *(enum DataType*)schema;
+  DataType schema_casted = *(DataType*)schema;
   return deserialize_value(item_ptr, schema_casted);
 }
 
 Test(test_parse_csv, parse_valid_csv_into_columns_valid_schema) {
-  enum DataType MOCK_SCHEMA[3] = {INTEGER, STRING, STRING};
+  DataType MOCK_SCHEMA[3] = {INTEGER, STRING, STRING};
   // set up test file
   char *MOCK_FILE_HEADERS = "foo;bar;baz\n";
   char *MOCK_FILE_ROW1 =

@@ -5,25 +5,38 @@ BUILD ?= debug
 build_dir := ${CURDIR}/build/${BUILD}
 exes := # Executables to build
 
+sources.domain = $(wildcard src/domain/*.c)
+sources.lib = $(wildcard src/lib/*.c)
+sources.api = $(wildcard src/api/*.c)
+# debug.c has its own main(), so it's excluded from the CLI executable.
+sources.cli = $(filter-out src/cli/debug.c,$(wildcard src/cli/*.c))
+
+# Header paths
+includes := src/api src/domain src/lib src/cli
+INCLUDES := $(addprefix -I,$(includes))
+
 # ==== Begin define executable test-bincoff
-exes += test-bincoff
-objects.test-bincoff = bincoff.o sized_bincoff_buffer.o tests.o
+# exes += test-domain
+# sources.unit-tests = ${sources.domain} ${sources.lib} tests/test-domain.c
+# objects.test-bincoff = $(sources.unit-tests:.c=.o)
 # ==== End define executable test-bincoff
 
 # ==== Begin define executable test-sized-bincoff-buffer
-exes += test-sized-bincoff-buffer
-objects.test-sized-bincoff-buffer = sized_bincoff_buffer.o test_sized_bincoff_buffer.o
+# exes += test-sized-bincoff-buffer
+# sources.sized-buffer-unit-tests = ${sources.lib} tests/test-sized-bincoff-buffer.c
+# objects.test-sized-bincoff-buffer = $(sources.sized-buffer-unit-tests:.c=.o)
 # ==== End define executable test-sized-bincoff-buffer
 
 
 # ==== Begin define executable cli
 exes += bincoff-cli
-objects.bincoff-cli = bincoff.o sized_bincoff_buffer.o main.o
+sources.bincoff-cli = ${sources.lib} ${sources.cli} ${sources.api} ${sources.domain}
+objects.bincoff-cli = $(sources.bincoff-cli:.c=.o)
 # ==== End define executable cli
 
 # ==== Begin define executable debug-bincoff
-exes += debug-bincoff
-objects.debug-bincoff = bincoff.o sized_bincoff_buffer.o debug.o
+# exes += debug-bincoff
+# objects.debug-bincoff = bincoff.o sized_bincoff_buffer.o debug.o
 # ==== End define executable debug-bincoff
 
 
@@ -71,7 +84,7 @@ LDLIBS.test-sized-bincoff-buffer := -lcriterion
 LDLIBS.bincoff-cli :=
 LDLIBS.debug-bincoff :=
 
-COMPILE.C = ${CC} -c $(abspath $<) -o $@ ${CFLAGS}
+COMPILE.C = ${CC} -c $(abspath $<) -o $@ ${INCLUDES} ${CFLAGS}
 
 all : ${exes:%=${build_dir}/%} # Build all exectuables.
 
@@ -90,8 +103,10 @@ ${exes:%=run_%} : run_% : ${build_dir}/%
 ${build_dir} :
 	mkdir -p $@
 
-# Compile a C source into .o.
-${build_dir}/%.o : src/%.c Makefile | ${build_dir}
+# Compile a C source into .o. Object paths mirror the source tree, e.g.
+# src/domain/csv.c -> ${build_dir}/src/domain/csv.o.
+${build_dir}/%.o : %.c Makefile | ${build_dir}
+	@mkdir -p $(@D)
 	$(strip ${COMPILE.C})
 
 clean :
