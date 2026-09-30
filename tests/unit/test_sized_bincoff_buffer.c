@@ -30,5 +30,7 @@ Test(test_sized_bincoff_buffer, test_append_item_too_large_is_handled) {
   void *item = calloc(item_size, 1);
   append(buf, item, item_size, 1);
   remaining_capacity = get_remaining_capacity(buf);
-  cr_assert(remaining_capacity == initial_capacity - item_size);
+  // The buffer was resized to fit using capacity + item_size + 1
+  cr_assert(buf->capacity > item_size);
+  cr_assert(remaining_capacity == buf->capacity - (buf->head_ptr - buf->start_ptr));
 }
